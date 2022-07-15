@@ -1,0 +1,62 @@
+http:
+  port: ${EG_HTTP_PORT:-8080}
+apiEndpoints:
+  dummy_apiEndpoints:
+    host: '*'
+policies:
+  - log
+  # - mock
+pipelines:
+  api:
+    apiEndpoints:
+      - dummy_apiEndpoints
+    policies:
+      - log:
+          - action:
+              message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+          - action:
+              message: "requestID: '${egContext.requestID}'"
+          - action:
+              message: "apiEndpoint.scopes: '${egContext.apiEndpoint.scopes}'"
+          - action:
+              message: "req.protocol: '${egContext.req.protocol}'"
+          - action:
+              message: "req.secure: '${egContext.req.secure}'"
+          - action:
+              message: "req.method: '${egContext.req.method}'"
+          - action:
+              message: "req.originalUrl: '${egContext.req.originalUrl}'"
+          - action:
+              message: "req.baseUrl: '${egContext.req.baseUrl}'"
+          - action:
+              message: "req.xhr: '${egContext.req.xhr}'"
+          - action:
+              message: "req.subdomains: '${egContext.req.subdomains}'"
+          - action:
+              message: "req.stale: '${egContext.req.stale}'"
+          - action:
+              message: "req.path: ${JSON.stringify(egContext.req.path, null, 3)}"
+          - action:
+              message: "req.route: ${JSON.stringify(egContext.req.route, null, 3)}"
+          - action:
+              message: "req.query: ${JSON.stringify(egContext.req.query)}"
+          - action:
+              message: "req.body: '${egContext.req.body}'"
+          - action:
+              message: "req.cookies: '${egContext.req.cookies}'"
+          - action:
+              message: "req.signedCookies: '${egContext.req.signedCookies}'"
+          - action:
+              message: "req.fresh: '${egContext.req.fresh}'"
+          - action:
+              message: "req.hostname: '${egContext.req.hostname}'"
+          - action:
+              message: "req.ip: '${egContext.req.ip}'"
+          - action:
+              message: "req.params: ${JSON.stringify(egContext.req.params)}"
+          - action:
+              message: "res.headersSent: '${egContext.res.headersSent}'"
+          - action:
+              message: "res.locals: ${JSON.stringify(egContext.res.locals)}"
+          - action:
+              message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
