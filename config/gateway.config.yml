@@ -1,16 +1,106 @@
 http:
   port: ${EG_HTTP_PORT:-8080}
 apiEndpoints:
-  dummy_apiEndpoints:
-    host: '*'
+  httpbin:
+    paths: ['/httpbin', '/httpbin/*']
+  pictures:
+    paths: ['/pictures', '/pictures/*']
+  chuck:
+    paths: ['/chuck', '/chuck/*']
+  lorem:
+    paths: [/lorem, /lorem/*]
+  mock:
+    paths: ['/dummy', '/dummy/*']
+serviceEndpoints:
+  httpbin:
+    url: 'https://httpbin.org'
+  pictures:
+    url: 'https://picsum.photos'
+  chuck:
+    urls:
+      - 'https://api.chucknorris.io/jokes'
+      - 'https://api.chucknorris.io/jokes' # duplicated but only to examplify the case of multiple targets
+  lorem:
+    url: 'https://baconipsum.com/api'
 policies:
   - log
-  # - mock
+  - proxy
+  # - mock # due its implementation, it is not necesasry to declare it, it "autoregisters" the service endpoint URIs
 pipelines:
-  api:
+  lorem:
+    # http://localhost:8080/lorem/?type=meat-and-filler
+    # http://localhost:8080/lorem/?type=all-meat&paras=2&start-with-lorem=1
+    # http://localhost:8080/lorem/?type=all-meat&sentences=1&start-with-lorem=1
+    # http://localhost:8080/lorem/?type=meat-and-filler&paras=5&format=text
+    # http://localhost:8080/lorem/?type=all-meat&paras=3&start-with-lorem=1&format=html
     apiEndpoints:
-      - dummy_apiEndpoints
+      - lorem
     policies:
+      - proxy:
+          - action:
+              serviceEndpoint: lorem
+              changeOrigin: true
+              prependPath: true
+              ignorePath: false
+              stripPath: true
+              secure: true
+              cookieDomainRewrite: true
+  chuck:
+    # http://localhost:8080/chuck/categories
+    # http://localhost:8080/chuck/random
+    # http://localhost:8080/chuck/random?category=dev
+    apiEndpoints:
+      - chuck
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: chuck
+              changeOrigin: true
+              prependPath: true
+              ignorePath: false
+              stripPath: true
+              secure: true
+  pictures:
+    # http://localhost:8080/pictures/200/300
+    apiEndpoints:
+      - pictures
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: pictures
+              changeOrigin: true
+              # ---------------------------------------------------------------
+              # autoRewrite: false (default) has no problems but with 'true'
+              # the server crashes, so I have created a pull request for:
+              # - node_modules\http-proxy\lib\http-proxy\passes\web-outgoing.js
+              # - https://github.com/http-party/node-http-proxy/pull/1600
+              autoRewrite: true
+              # ---------------------------------------------------------------
+              prependPath: true
+              ignorePath: false
+              stripPath: true
+              secure: false
+  httpbin:
+    # http://localhost:8080/httpbin/headers
+    # http://localhost:8080/httpbin/ip
+    # http://localhost:8080/httpbin/user-agent
+    # http://localhost:8080/httpbin/uuid
+    apiEndpoints:
+      - httpbin
+    policies:
+      - proxy:
+          - action:
+              serviceEndpoint: httpbin 
+              changeOrigin: true
+              prependPath: true
+              ignorePath: false
+              stripPath: true
+  mock:
+    # http://localhost:8080/dummy
+    apiEndpoints:
+      - mock
+    policies:
+      # - mock: # see the comment on the policy section above
       - log:
           - action:
               message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
