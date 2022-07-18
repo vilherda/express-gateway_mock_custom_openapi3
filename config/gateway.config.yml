@@ -1,6 +1,8 @@
 http:
   port: ${EG_HTTP_PORT:-8080}
 apiEndpoints:
+  favicon:
+    paths: ['*/favicon.ico']
   httpbin:
     paths: ['/httpbin', '/httpbin/*']
   pictures:
@@ -11,6 +13,8 @@ apiEndpoints:
     paths: [/lorem, /lorem/*]
   mock:
     paths: ['/dummy', '/dummy/*']
+  default:
+    paths: ['/', '/*']
 serviceEndpoints:
   httpbin:
     url: 'https://httpbin.org'
@@ -22,11 +26,60 @@ serviceEndpoints:
       - 'https://api.chucknorris.io/jokes' # duplicated but only to examplify the case of multiple targets
   lorem:
     url: 'https://baconipsum.com/api'
+  errors:
+    urls:
+      - 'https://mock.codes'
+      - 'https://httpstat.us'
 policies:
   - log
+  - errors
   - proxy
+  - terminate
   # - mock # due its implementation, it is not necesasry to declare it, it "autoregisters" the service endpoint URIs
 pipelines:
+  favicon:
+    apiEndpoints:
+      - favicon
+    policies:
+      - log:
+        - action:
+            message: "REQUEST BLOCKED: '${egContext.req.originalUrl}'"
+      - terminate:
+        - action:
+            statusCode: 410
+            message: the resource is gone...
+  default:
+    # http://localhost:8080/qwerty
+    # httpstat.us/200?sleep=5000
+    apiEndpoints:
+      - default
+    policies:
+      - errors:
+          - action:
+              template: '{ "success": "$status", "message": "$message", "error": "$code", "exception": "$trace", "file": "$file", "line": "$line" }'
+              messageField: message # default value: 'message'
+              defaults:
+                status: NOK
+                message: Internal Server Error
+                success: false
+                error: 500
+            #   messages: # maps proxied service responses that are not 200
+            #     Internal Server Error: Oops... Please try again
+            #     Validation Error: Some fields have validation errors
+            #     Not found: TheRe aren't the droids you're looking for.
+            #     Unauthorized: Please login again...
+            #     404 Not found: There is nothing here...
+              restrictErrors: true
+              filters:
+                - regex: (.*)
+                  message: Molt malament $1...
+      - proxy:
+          - action:
+              serviceEndpoint: errors
+              changeOrigin: true # with 'false' the response is: 502 { message: "Bad gateway."}
+              prependPath: true
+              ignorePath: false
+              stripPath: true
   lorem:
     # http://localhost:8080/lorem/?type=meat-and-filler
     # http://localhost:8080/lorem/?type=all-meat&paras=2&start-with-lorem=1
@@ -102,51 +155,51 @@ pipelines:
     policies:
       # - mock: # see the comment on the policy section above
       - log:
-          - action:
-              message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-          - action:
-              message: "requestID: '${egContext.requestID}'"
-          - action:
-              message: "apiEndpoint.scopes: '${egContext.apiEndpoint.scopes}'"
-          - action:
-              message: "req.protocol: '${egContext.req.protocol}'"
-          - action:
-              message: "req.secure: '${egContext.req.secure}'"
-          - action:
-              message: "req.method: '${egContext.req.method}'"
-          - action:
-              message: "req.originalUrl: '${egContext.req.originalUrl}'"
-          - action:
-              message: "req.baseUrl: '${egContext.req.baseUrl}'"
-          - action:
-              message: "req.xhr: '${egContext.req.xhr}'"
-          - action:
-              message: "req.subdomains: '${egContext.req.subdomains}'"
-          - action:
-              message: "req.stale: '${egContext.req.stale}'"
-          - action:
-              message: "req.path: ${JSON.stringify(egContext.req.path, null, 3)}"
-          - action:
-              message: "req.route: ${JSON.stringify(egContext.req.route, null, 3)}"
-          - action:
-              message: "req.query: ${JSON.stringify(egContext.req.query)}"
-          - action:
-              message: "req.body: '${egContext.req.body}'"
-          - action:
-              message: "req.cookies: '${egContext.req.cookies}'"
-          - action:
-              message: "req.signedCookies: '${egContext.req.signedCookies}'"
-          - action:
-              message: "req.fresh: '${egContext.req.fresh}'"
-          - action:
-              message: "req.hostname: '${egContext.req.hostname}'"
-          - action:
-              message: "req.ip: '${egContext.req.ip}'"
-          - action:
-              message: "req.params: ${JSON.stringify(egContext.req.params)}"
-          - action:
-              message: "res.headersSent: '${egContext.res.headersSent}'"
-          - action:
-              message: "res.locals: ${JSON.stringify(egContext.res.locals)}"
-          - action:
-              message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        - action:
+            message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        - action:
+            message: "requestID: '${egContext.requestID}'"
+        - action:
+            message: "apiEndpoint.scopes: '${egContext.apiEndpoint.scopes}'"
+        - action:
+            message: "req.protocol: '${egContext.req.protocol}'"
+        - action:
+            message: "req.secure: '${egContext.req.secure}'"
+        - action:
+            message: "req.method: '${egContext.req.method}'"
+        - action:
+            message: "req.originalUrl: '${egContext.req.originalUrl}'"
+        - action:
+            message: "req.baseUrl: '${egContext.req.baseUrl}'"
+        - action:
+            message: "req.xhr: '${egContext.req.xhr}'"
+        - action:
+            message: "req.subdomains: '${egContext.req.subdomains}'"
+        - action:
+            message: "req.stale: '${egContext.req.stale}'"
+        - action:
+            message: "req.path: ${JSON.stringify(egContext.req.path, null, 3)}"
+        - action:
+            message: "req.route: ${JSON.stringify(egContext.req.route, null, 3)}"
+        - action:
+            message: "req.query: ${JSON.stringify(egContext.req.query)}"
+        - action:
+            message: "req.body: '${egContext.req.body}'"
+        - action:
+            message: "req.cookies: '${egContext.req.cookies}'"
+        - action:
+            message: "req.signedCookies: '${egContext.req.signedCookies}'"
+        - action:
+            message: "req.fresh: '${egContext.req.fresh}'"
+        - action:
+            message: "req.hostname: '${egContext.req.hostname}'"
+        - action:
+            message: "req.ip: '${egContext.req.ip}'"
+        - action:
+            message: "req.params: ${JSON.stringify(egContext.req.params)}"
+        - action:
+            message: "res.headersSent: '${egContext.res.headersSent}'"
+        - action:
+            message: "res.locals: ${JSON.stringify(egContext.res.locals)}"
+        - action:
+            message: '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'

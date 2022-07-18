@@ -8,6 +8,7 @@ plugins:
   express-gateway-plugin-openapi3-mock-server:
     definitionFile: './config/mock-openapi3.yml'
     package: '../express-gateway-plugin-openapi3-mock-server/manifest.js'
+  express-gateway-plugin-errors:
 
 crypto:
   cipherKey: sensitiveKey
